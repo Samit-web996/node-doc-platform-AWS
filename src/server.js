@@ -1,44 +1,52 @@
+require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
-
-const connectDB = require('./config/db');
-const authRoutes = require('./routes/auth.routes');
-const docRoutes = require('./routes/doc.routes');
-const healthRoutes = require('./routes/health.routes');
+const { loadSecrets } = require('./config/secrets');
 
 const app = express();
 
-// Database Connect
-connectDB();
+const startServer = async () => {
+  await loadSecrets();
 
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
+  const connectDB = require('./config/db');
+  const authRoutes = require('./routes/auth.routes');
+  const docRoutes = require('./routes/doc.routes');
+  const healthRoutes = require('./routes/health.routes');
 
-// Global Rate Limiter
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Bohot zyada requests, thodi der baad koshish karein.'
-});
-app.use('/api/', limiter);
+  // Database Connection
+  await connectDB();
 
-// Routes Register
-app.use('/api', healthRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/documents', docRoutes);
+  // Security Middlewares
+  app.use(helmet());
+  app.use(cors());
+  app.use(express.json());
 
-app.use((err, req, res, next) => {
-  if (err) {
-    return res.status(400).json({ error: err.message });
-  }
-  next();
-});
+  app.use('/api', healthRoutes);
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again later.' }
+  });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  app.use('/api/auth', limiter, authRoutes);
+  app.use('/api/documents', limiter, docRoutes);
+
+  // Error Handling Middleware
+  app.use((err, req, res, next) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
+
+startServer();

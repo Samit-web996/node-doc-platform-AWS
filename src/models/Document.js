@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const documentSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
-  userId: { type: String, required: true, index: true }, // Indexing fast search ke liye zaroori hai
+  userId: { type: String, required: true, index: true }, 
   fileName: { type: String, required: true },
   s3Key: { type: String, required: true },
   fileSize: { type: Number, required: true },
