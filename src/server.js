@@ -7,6 +7,9 @@ const { loadSecrets } = require('./config/secrets');
 
 const app = express();
 
+const dns = require('node:dns');
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 const startServer = async () => {
   await loadSecrets();
 
@@ -16,7 +19,10 @@ const startServer = async () => {
   const healthRoutes = require('./routes/health.routes');
 
   // Database Connection
-  await connectDB();
+  const mongoURI = 'mmongodb://sunnybhasneiya_db_user:DocPlatformPass123@cluster0-shard-00-00.qmw7avj.mongodb.net:27017,cluster0-shard-00-01.qmw7avj.mongodb.net:27017,cluster0-shard-00-02.qmw7avj.mongodb.net:27017/test?ssl=true&replicaSet=atlas-qmw7avj-shard-0&authSource=admin&retryWrites=true&w=majority'
+  await connectDB(mongoURI)
+  .then(() => console.log("Connected Successfully!"))
+  .catch(err => console.error("Connection Error:", err));;
 
   // Security Middlewares
   app.use(helmet());
